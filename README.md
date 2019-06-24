@@ -10,3 +10,6 @@ The restful service provides functionalities to:
 * Speed up a clip
 * Slow down a clip
 * Looping of clip
+
+Service is backed by the powerful ffmpeg library. 
+https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
