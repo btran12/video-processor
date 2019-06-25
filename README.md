@@ -1,6 +1,6 @@
 # video-processor
 
-An backend video processing service. 
+A backend video processing service. 
 
 The restful service provides functionalities to:
 * Trim video
