@@ -7,22 +7,25 @@ class Video {
     
     constructor(path) {
         this.path = path;
+        this.defaultFileName = './output.mp4';
+
         ffmpeg.setFfmpegPath(ffmpegPath);
+
+        this.command = ffmpeg({ source: this.path });
         
+    }
+
+    trim(startTime, endTime) {
+        this.command.setStartTime(startTime)
+                    .setDuration(endTime - startTime);
     }
 
     process() {
         const startTime = Date.now();
-        const command = ffmpeg({ source: this.path })
-            .withNoAudio()
-            .setStartTime(15)
-            .setDuration(5)
-            .on('start', function(commandLine) {
-                // The 'start' event is emitted just after the FFmpeg
-                // process is spawned.
+        this.command
+            .on('start', (commandLine) => {
                 console.log('Spawned FFmpeg with command: ' + commandLine);
             })
-        
             .on('codecData', this.processCodecData)
             .on('progress', this.processProgress)
             .on('error', (err) => {
@@ -32,18 +35,9 @@ class Video {
                 const seconds = (Date.now() - startTime) / 1000;
                 console.log(`Processing finished! (${seconds}s)`);
             })
-            .saveToFile('./output.mp4');
+            .saveToFile(this.defaultFileName);
     }
 
-    // The 'codecData' event is emitted when FFmpeg first
-    // reports input codec information. 'data' contains
-    // the following information:
-    // - 'format': input format
-    // - 'duration': input duration
-    // - 'audio': audio codec
-    // - 'audio_details': audio encoding details
-    // - 'video': video codec
-    // - 'video_details': video encoding details
     processCodecData(data) {
         console.log('Input is ' + data.audio + ' audio with ' + data.video + ' video');
     }
