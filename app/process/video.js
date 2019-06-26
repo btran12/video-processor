@@ -1,15 +1,15 @@
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffmpeg = require('fluent-ffmpeg');
-const ffprobe = require('ffprobe');
 const ffprobeStatic = require('ffprobe-static');
 
 class Video {
     
-    constructor(path) {
+    constructor(path, outputPath) {
         this.path = path;
-        this.defaultFileName = './output.mp4';
+        this.outputPath = outputPath;
 
         ffmpeg.setFfmpegPath(ffmpegPath);
+        ffmpeg.setFfprobePath(ffprobeStatic.path);
 
         this.command = ffmpeg({ source: this.path });
         
@@ -20,7 +20,25 @@ class Video {
                     .setDuration(endTime - startTime);
     }
 
-    process() {
+    merge(additionalVideos) {
+        if (additionalVideos.length < 1) return;
+
+        // Merge with the remaining videos if available
+        for (let i = 0; i < additionalVideos.length; i++) {
+            this.command.input(additionalVideos[i]);
+        }
+
+        this.command
+            .on('error', function (err) {
+                console.log('An error occurred: ' + err.message);
+            })
+            .on('end', function () {
+                console.log('Merging finished!');
+            })
+            .mergeToFile(this.outputPath, './');
+    }
+
+    process(callback) {
         const startTime = Date.now();
         this.command
             .on('start', (commandLine) => {
@@ -34,8 +52,12 @@ class Video {
             .on('end', () => {
                 const seconds = (Date.now() - startTime) / 1000;
                 console.log(`Processing finished! (${seconds}s)`);
+
+                if (callback) callback();
             })
-            .saveToFile(this.defaultFileName);
+            .saveToFile(this.outputPath);
+
+
     }
 
     processCodecData(data) {
@@ -47,17 +69,12 @@ class Video {
     }
 
     getMetadata() {
-        ffprobe(this.path, { path: ffprobeStatic.path })
-            .then((info) => {
-                const videoStream = info.streams[0];
-                const audioStream = info.streams[1];
+        ffmpeg.ffprobe(this.path, (err, metadata) => {
+            const videoStream = metadata.streams[0];
+            const audioStream = metadata.streams[1];
 
-                console.log(videoStream.duration);
-            })
-            .catch((err) => {
-                console.error(err);
-            });
-        
+            console.log(videoStream.duration);
+        });
     }
 }
 
